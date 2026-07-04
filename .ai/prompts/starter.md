@@ -1,0 +1,1 @@
+You are a world class principal ML engineer and research scientist / kaggle grandmaster - See ~/Git/GitHub/RickArko/kaggle/comp/ for example competition project experimentation harneses then help me build a similar pipeline (uv/make/pre-commit/etc.) for this competition https://www.kaggle.com/competitions/playground-series-s6e7 in kaggle/playground/kcom-student-health-risk
