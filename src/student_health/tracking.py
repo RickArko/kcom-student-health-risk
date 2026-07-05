@@ -1,22 +1,19 @@
 from __future__ import annotations
+
 import json
 import logging
 from pathlib import Path
-from typing import Any
 
 import numpy as np
-import pandas as pd
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 logger = logging.getLogger(__name__)
 
 CONFIG = {
-    "target_encoding": "binary",
-    "numeric_scale": "minmax",
-    "categorical_handling": "one-hot",
-    "split_strategy": "temporal",
-    "cv_folds": 5,
+    "target_encoding": "multiclass",
+    "n_classes": 3,
     "model_type": "lightgbm",
-    "submission_format": "probability",
+    "submission_format": "class_label",
 }
 
 
@@ -33,16 +30,15 @@ def load_config(config_path: str | Path) -> dict:
         return json.load(f)
 
 
-def evaluate_predictions(y_true, y_pred, metric: str = "auc"):
-    if metric == "auc":
-        from sklearn.metrics import roc_auc_score
-
-        return roc_auc_score(y_true, y_pred)
+def evaluate_predictions(y_true, y_pred, metric: str = "accuracy"):
+    if metric == "accuracy":
+        return accuracy_score(y_true, y_pred)
     elif metric == "f1":
-        from sklearn.metrics import f1_score
-
-        y_pred_class = (y_pred > 0.5).astype(int)
-        return f1_score(y_true, y_pred_class)
+        return f1_score(y_true, y_pred, average="macro")
+    elif metric == "auc":
+        if y_pred.ndim == 1:
+            y_pred = np.eye(CONFIG["n_classes"])[y_pred]
+        return roc_auc_score(y_true, y_pred, multi_class="ovr")
     else:
         raise ValueError(f"Unknown metric: {metric}")
 

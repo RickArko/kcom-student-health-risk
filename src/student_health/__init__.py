@@ -1,7 +1,7 @@
 from __future__ import annotations
+
 import logging
 import sys
-from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,

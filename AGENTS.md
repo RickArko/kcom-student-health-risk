@@ -10,13 +10,13 @@ All Python **must** be prefixed with `uv run` (`.venv` not PATH).
 |---|---|---|
 | `make install` | `uv sync --extra dev` + editable install + auth check |
 | `make download` | Fetch competition data to `data/raw/` |
-| `make sim-download` | Fetch sample train/test CSV files (for development) |
 | `make test` | `uv run pytest tests/ -v` |
 | `make test ARGS="-k name -x"` | Focused test |
 | `make lint` | `ruff check src/ scripts/ tests/` (no autofix) |
 | `make format` | `ruff format --check` (no rewrite) |
 | `make format-fix` | Apply ruff formatting |
 | `make list` | List dataset statistics in `stats.json` |
+| `make submit` | Submit `submissions/submission.csv` to Kaggle |
 
 ## Verification loop: `make lint && make format && make test`. No typechecker configured.
 
