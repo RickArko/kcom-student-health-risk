@@ -1,0 +1,6 @@
+{
+  "accuracy": 0.967091248967526,
+  "f1": 0.9091689238069446,
+  "auc": 0.9834547242783339,
+  "model_path": "experiments/latest_run/health_risk_model.pkl"
+}

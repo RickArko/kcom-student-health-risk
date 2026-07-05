@@ -1,0 +1,6 @@
+{
+  "target_encoding": "multiclass",
+  "n_classes": 3,
+  "model_type": "lightgbm",
+  "submission_format": "class_label"
+}

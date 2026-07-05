@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 
 
 def load_train(data_dir: Path | None = None) -> pd.DataFrame:
@@ -31,7 +32,9 @@ def fill_missing(df: pd.DataFrame, strategy: str = "forward") -> pd.DataFrame:
     return df
 
 
-def winsorize(df: pd.DataFrame, feat_cols: list[str], lower: float = 0.01, upper: float = 0.99) -> pd.DataFrame:
+def winsorize(
+    df: pd.DataFrame, feat_cols: list[str], lower: float = 0.01, upper: float = 0.99
+) -> pd.DataFrame:
     """Winsorize numeric feature columns."""
     df = df.copy()
     for col in feat_cols:
