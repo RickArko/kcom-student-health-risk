@@ -119,23 +119,22 @@ elif [ -f ~/.kaggle/kaggle.json ] && ! grep -q "your-kaggle-username" ~/.kaggle/
 		echo "Using legacy credentials from ~/.kaggle/kaggle.json"; \
 		exit 0; \
 	else \
-		if [ -f .kaggle/access_token.example ]; then \
-			cp .kaggle/access_token.example $(TOKEN_FILE); \
+		if [ -n "$$(ls ~/.kaggle/acc* 2>/dev/null)" ] && ls ~/.kaggle/acc* | xargs grep -L "^$$PLACEHOLDER" 2>/dev/null | head -1 > $(TOKEN_FILE) 2>/dev/null; then \
+			if [ -s "$$(ls ~/.kaggle/acc* 2>/dev/null | grep -L "^$$PLACEHOLDER" 2>/dev/null | head -1)" ]; then \
+				TOKEN=$$(cat $(TOKEN_FILE)); \
+			else \
+				echo "Illegal token found"; \
+				touch $(TOKEN_FILE); \
+				chmod 600 $(TOKEN_FILE); \
+			fi; \
 		else \
-			printf 'KGAT_your-kaggle-api-token-here\n' > $(TOKEN_FILE); \
-		fi; \
-		chmod 600 $(TOKEN_FILE); \
-		echo ""; \
-		echo " Token template written to $(TOKEN_FILE)."; \
-		echo ""; \
-		echo " To configure:"; \
-		echo "   1. Go to https://www.kaggle.com/settings"; \
-		echo "   2. Under API, click 'Create New Token'"; \
-		echo "   3. Copy the token (starts with KGAT_)"; \
-		echo "   4. Paste it into $(TOKEN_FILE) (and nothing else)"; \
-		echo "   5. Run 'make download' again to verify"; \
-		echo ""; \
-		exit 1; \
+			if [ -f .kaggle/access_token.example ]; then \
+				cp .kaggle/access_token.example $(TOKEN_FILE); \
+			else \
+				printf 'KGAT_your-kaggle-api-token-here\n' > $(TOKEN_FILE); \
+			fi; \
+			chmod 600 $(TOKEN_FILE); \
+			fi; \
 	fi
 
 _ensure_kaggle_auth: _ensure_kaggle_token
