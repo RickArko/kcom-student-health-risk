@@ -97,7 +97,7 @@ def main() -> None:
 
     # ── 4. Check submissions ─────────────────────────────────────
     print("\n[4/5] Checking submissions...")
-    submissions_dir = Path("submissions")
+    submissions_dir = Path("data/submissions")
     if submissions_dir.exists():
         submission_files = list(submissions_dir.glob("*.csv"))
         stats["submissions"] = {

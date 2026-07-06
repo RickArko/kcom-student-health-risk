@@ -4,4 +4,9 @@ data/
 .pytest*
 .ruff*
 .kaggle/access_token
-scripts/nbs/*
+.kaggle/*.json
+notebooks/*.ipynb
+model.joblib
+submission.csv
+outputs/
+experiments/

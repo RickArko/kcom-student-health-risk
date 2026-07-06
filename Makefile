@@ -62,7 +62,7 @@ list:
 	@uv run python scripts/list_stats.py
 
 submit: _ensure_kaggle_cli _ensure_kaggle_auth
-	@SUBMISSION="submissions/submission.csv"; \
+	@SUBMISSION="data/submissions/submission.csv"; \
 	if [ ! -f "$$SUBMISSION" ]; then \
 		echo "ERROR: $$SUBMISSION not found. Run prediction first."; \
 		exit 1; \

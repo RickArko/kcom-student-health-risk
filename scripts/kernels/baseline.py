@@ -292,9 +292,11 @@ def main() -> None:
     test_labels = test_preds.argmax(axis=1)
     pred_labels = le_target.inverse_transform(test_labels)
 
+    out_dir = Path("data/submissions")
+    out_dir.mkdir(parents=True, exist_ok=True)
     submission = pd.DataFrame({"id": test_ids, "health_condition": pred_labels})
-    submission.to_csv("submission.csv", index=False)
-    logger.info("  Submission saved: submission.csv (%d rows)", len(submission))
+    submission.to_csv(out_dir / "submission.csv", index=False)
+    logger.info("  Submission saved: %s (%d rows)", out_dir / "submission.csv", len(submission))
     pred_dist = submission["health_condition"].value_counts().to_dict()
     logger.info("  Predicted distribution: %s", pred_dist)
 
