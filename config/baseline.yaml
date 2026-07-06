@@ -1,0 +1,57 @@
+competition:
+  name: "playground-series-s6e7"
+  metric: "balanced_accuracy"
+  target: "health_condition"
+  n_classes: 3
+  class_labels: ["fit", "at-risk", "unhealthy"]
+
+paths:
+  data: "data/raw"
+  outputs: "outputs/"
+  submissions: "submissions/"
+
+preprocessing:
+  numeric_impute: "median"
+  categorical_impute: "mode"
+  encode: "label"  # label | onehot
+
+features:
+  numeric: ["sleep_duration", "heart_rate", "bmi", "calorie_expenditure",
+            "step_count", "exercise_duration", "water_intake"]
+  categorical: ["diet_type", "stress_level", "sleep_quality",
+                "physical_activity_level", "smoking_alcohol", "gender"]
+  interactions:
+    - ["bmi", "exercise_duration"]
+    - ["calorie_expenditure", "step_count"]
+    - ["heart_rate", "bmi"]
+
+cv:
+  type: "stratified"
+  n_splits: 5
+  shuffle: true
+  random_state: 42
+
+model:
+  type: "lightgbm"
+  params:
+    objective: "multiclass"
+    num_class: 3
+    metric: "multi_logloss"
+    boosting_type: "gbdt"
+    n_estimators: 500
+    learning_rate: 0.05
+    num_leaves: 63
+    max_depth: -1
+    min_child_samples: 20
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 0.1
+    class_weight: "balanced"
+    random_state: 42
+    n_jobs: -1
+    verbose: -1
+
+kaggle:
+  competition: "playground-series-s6e7"
+  kernel_name: "student-health-risk-baseline"
