@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline kernel-baseline
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn kernel-baseline kernel-tabpfn
 
 all: install download test
 	@echo ""
@@ -142,13 +142,21 @@ notebook-eda:
 notebook-baseline:
 	@uv run python scripts/nbs/build_baseline.py
 
-notebooks: notebook-eda notebook-baseline
+notebook-tabpfn:
+	@uv run python scripts/nbs/build_tabpfn.py
+
+notebooks: notebook-eda notebook-baseline notebook-tabpfn
 
 kernel-baseline:
 	@echo "Copy scripts/kernels/baseline.py into a Kaggle Notebook cell."
 	@echo "Or run locally: uv run python scripts/kernels/baseline.py"
 	@uv run python scripts/kernels/baseline.py 2>&1 | head -30 || true
 	@echo "... (use CONFIG=config/baseline.yaml for config-driven training)"
+
+kernel-tabpfn:
+	@echo "Copy scripts/kernels/tabpfn.py into a Kaggle Notebook (GPU) cell."
+	@echo "Or run locally: uv run python scripts/kernels/tabpfn.py"
+	@uv run python scripts/kernels/tabpfn.py 2>&1 | head -30 || true
 
 _clean:
 	rm -f .uv_sync

@@ -18,6 +18,7 @@ dependencies = [
     "ipykernel>=6.29",
     "tqdm>=4.66",
     "optuna>=3.6",
+    "tabpfn>=8.0",
 ]
 
 [project.optional-dependencies]
