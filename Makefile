@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download test lint format clean list submit
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline kernel-baseline
 
 all: install download test
 	@echo ""
@@ -137,6 +137,21 @@ _ensure_kaggle_auth: _ensure_kaggle_token
 	echo "  Authenticated successfully." || \
 	{ echo "  WARNING: Authentication check failed."; exit 1; }
 
+notebook-eda:
+	@uv run python scripts/nbs/build_eda.py
+
+notebook-baseline:
+	@uv run python scripts/nbs/build_baseline.py
+
+notebooks: notebook-eda notebook-baseline
+
+kernel-baseline:
+	@echo "Copy scripts/kernels/baseline.py into a Kaggle Notebook cell."
+	@echo "Or run locally: uv run python scripts/kernels/baseline.py"
+	@uv run python scripts/kernels/baseline.py 2>&1 | head -30 || true
+	@echo "... (use CONFIG=config/baseline.yaml for config-driven training)"
+
 _clean:
 	rm -f .uv_sync
 	rm -rf data/raw/*
+	rm -rf notebooks/*.ipynb

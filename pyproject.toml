@@ -42,5 +42,9 @@ extend-exclude = ["notebooks"]
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
+[tool.ruff.lint.per-file-ignores]
+"scripts/kernels/*" = ["E402", "I001"]
+"scripts/nbs/*" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

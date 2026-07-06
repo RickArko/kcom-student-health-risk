@@ -5,7 +5,12 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    f1_score,
+    roc_auc_score,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +19,7 @@ CONFIG = {
     "n_classes": 3,
     "model_type": "lightgbm",
     "submission_format": "class_label",
+    "metric": "balanced_accuracy",
 }
 
 
@@ -30,8 +36,10 @@ def load_config(config_path: str | Path) -> dict:
         return json.load(f)
 
 
-def evaluate_predictions(y_true, y_pred, metric: str = "accuracy"):
-    if metric == "accuracy":
+def evaluate_predictions(y_true, y_pred, metric: str = "balanced_accuracy"):
+    if metric == "balanced_accuracy":
+        return balanced_accuracy_score(y_true, y_pred)
+    elif metric == "accuracy":
         return accuracy_score(y_true, y_pred)
     elif metric == "f1":
         return f1_score(y_true, y_pred, average="macro")
