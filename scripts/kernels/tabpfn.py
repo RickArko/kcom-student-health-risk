@@ -8,6 +8,17 @@ Strategy:
 - Pass categoricals as strings (TabPFN auto-encodes)
 - Stratified subsample to 15K rows (TabPFN sweet spot)
 - Single fast run (skip CV, rely on Kaggle LB for eval)
+
+⚠ LICENSE REQUIRED: TabPFN v3 requires a one-time license acceptance.
+  1. Open https://ux.priorlabs.ai in a browser and log in (or register)
+  2. Accept the license on the Licenses tab
+  3. Copy your API Key from https://ux.priorlabs.ai/account
+  4. Set TABPFN_TOKEN as a Kaggle Secret (Add-ons → Secrets → + New Secret)
+     Key: TABPFN_TOKEN  Value: <your-api-key>
+  5. Restart the notebook and run again
+
+⚠ ACCELERATOR: Set Notebook Settings → Accelerator → GPU (T4 x2).
+  TabPFN runs ~5× faster on GPU and the kernel will warn if none is found.
 """
 
 # === SETUP ===
@@ -23,6 +34,23 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
+# ── TabPFN license token ──────────────────────────────────────────────────────
+# Try Kaggle Secrets first, then plain env var
+_TABPFN_TOKEN = None
+try:
+    from kaggle_secrets import UserSecretsClient  # noqa: F811
+
+    _TABPFN_TOKEN = UserSecretsClient().get_secret("TABPFN_TOKEN")
+except Exception:
+    pass
+
+if _TABPFN_TOKEN is None:
+    _TABPFN_TOKEN = os.environ.get("TABPFN_TOKEN") or os.environ.get("KAGGLE_SECRET_TABPFN_TOKEN")
+
+if _TABPFN_TOKEN is not None:
+    os.environ["TABPFN_TOKEN"] = _TABPFN_TOKEN
+
+# ── Kaggle data path detection ─────────────────────────────────────────────────
 KAGGLE_DATA = None
 
 try:
@@ -97,6 +125,21 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("Student Health Risk — TabPFN v3")
     logger.info("=" * 60)
+
+    if not os.environ.get("TABPFN_TOKEN"):
+        logger.error(
+            "TABPFN_TOKEN not set. Follow the instructions at the top of this kernel to "
+            "accept the license and add your API key as a Kaggle Secret."
+        )
+        return
+
+    try:
+        import torch
+        if not torch.cuda.is_available():
+            logger.warning("No GPU detected — TabPFN will run on CPU (slow). "
+                           "Set Notebook Settings → Accelerator → GPU.")
+    except ImportError:
+        pass
 
     # ── 1. Load ──
     logger.info("[1/4] Loading data ...")

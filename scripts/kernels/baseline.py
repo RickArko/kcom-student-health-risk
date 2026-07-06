@@ -64,6 +64,7 @@ os.system("pip install -q scikit-learn>=1.5 lightgbm>=4.3 scipy>=1.13 joblib>=1.
 # === VENDORED CODE ===
 
 import joblib
+import lightgbm as lgb
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
@@ -320,6 +321,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    import lightgbm as lgb
-
     main()

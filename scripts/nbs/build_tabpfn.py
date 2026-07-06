@@ -18,6 +18,9 @@ NB.metadata = {
         "name": "python3",
     },
     "language_info": {"name": "python", "version": "3.12.0"},
+    "kaggle": {
+        "accelerator": "GPU",
+    },
 }
 
 CELLS = []
@@ -51,11 +54,27 @@ tuning, no feature engineering, no imputation needed.
 > and class imbalance without any manual preprocessing.
 """)
 
+# ── 0. License ──
+md("""
+## 0. TabPFN License
+
+**TabPFN v3 requires a one-time license acceptance.**
+
+1. Open https://ux.priorlabs.ai in a browser and log in (or register)
+2. Accept the license on the **Licenses** tab
+3. Copy your **API Key** from https://ux.priorlabs.ai/account
+4. Set `TABPFN_TOKEN` as a **Kaggle Secret**:
+   - In the Kaggle Notebook: **Add-ons → Secrets → + New Secret**
+   - Key: `TABPFN_TOKEN`  Value: *your-api-key*
+5. Then run the cells below
+""")
+
 # ── 1. Setup ──
 md("## 1. Setup")
 code("""
 from __future__ import annotations
 
+import os
 import warnings
 from pathlib import Path
 
@@ -65,6 +84,23 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from tabpfn import TabPFNClassifier
 
 warnings.filterwarnings("ignore")
+
+# ── Load TabPFN token from Kaggle Secret ──
+_TABPFN_TOKEN = None
+try:
+    from kaggle_secrets import UserSecretsClient
+    _TABPFN_TOKEN = UserSecretsClient().get_secret("TABPFN_TOKEN")
+except Exception:
+    pass
+
+if _TABPFN_TOKEN is None:
+    _TABPFN_TOKEN = os.environ.get("TABPFN_TOKEN") or os.environ.get("KAGGLE_SECRET_TABPFN_TOKEN")
+
+if _TABPFN_TOKEN is not None:
+    os.environ["TABPFN_TOKEN"] = _TABPFN_TOKEN
+    print("✓ TABPFN_TOKEN loaded from secret")
+else:
+    print("✗ TABPFN_TOKEN not set — open the Markdown cell above for instructions")
 
 NUM_COLS = [
     "sleep_duration", "heart_rate", "bmi", "calorie_expenditure",
