@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download sim-download test lint format clean list
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline kernel-baseline
 
 all: install download test
 	@echo ""
@@ -46,48 +46,35 @@ download: _ensure_kaggle_cli _ensure_kaggle_auth
 	cd $(DATA_DIR) && unzip -o $(COMPETITION).zip && rm -f $(COMPETITION).zip; \
 	echo "  Data ready in $(DATA_DIR)/"
 
-sim-download:
-	@mkdir -p $(DATA_DIR); \
-	$(MAKE) _ensure_kaggle_token; \
-	TOKEN="$$(cat $(TOKEN_FILE) 2>/dev/null)"; \
-	[ -z "$$TOKEN" ] && TOKEN="$$KAGGLE_API_TOKEN"; \
-	echo "Downloading $(COMPETITION) sample data..."; \
-	KAGGLE_API_TOKEN="$$TOKEN" uv run kaggle competitions download \
-		-c $(COMPETITION) -f train.csv -p $(DATA_DIR) && \
-	KAGGLE_API_TOKEN="$$TOKEN" uv run kaggle competitions download \
-		-c $(COMPETITION) -f test.csv -p $(DATA_DIR) 2>&1 || { \
-		exit_code=$$?; \
-		echo ""; \
-		echo "================================================================"; \
-		echo " Download failed (403 Forbidden)."; \
-		echo ""; \
-		echo " Possible causes:"; \
-		echo "   1. You haven't joined the competition yet."; \
-		echo "      Go to the page and click 'Join' / 'Accept Rules':"; \
-		echo "      https://www.kaggle.com/competitions/$(COMPETITION)"; \
-		echo ""; \
-		echo "   2. Your API token may be stale."; \
-		echo "      Regenerate at https://www.kaggle.com/settings"; \
-		echo "      then update $(TOKEN_FILE)"; \
-		echo "================================================================"; \
-		exit $$exit_code; \
-	}; \
-	echo "  Sample data ready in $(DATA_DIR)/"
-
 test:
-	@uv run pytest tests/ -v $(ARGS)
+	@if [ -d tests ]; then uv run pytest tests/ -v $(ARGS); else echo "WARNING: tests/ directory not found — skipping tests."; fi
 
 lint:
-	@uv run ruff check src/ scripts/ tests/
+	@uv run ruff check src/ scripts/ $(shell [ -d tests ] && echo tests/)
 
 format:
-	@uv run ruff format src/ scripts/ tests/ --check
+	@uv run ruff format src/ scripts/ $(shell [ -d tests ] && echo tests/) --check
 
 format-fix:
-	@uv run ruff format src/ scripts/ tests/
+	@uv run ruff format src/ scripts/ $(shell [ -d tests ] && echo tests/)
 
 list:
 	@uv run python scripts/list_stats.py
+
+submit: _ensure_kaggle_cli _ensure_kaggle_auth
+	@SUBMISSION="data/submissions/submission.csv"; \
+	if [ ! -f "$$SUBMISSION" ]; then \
+		echo "ERROR: $$SUBMISSION not found. Run prediction first."; \
+		exit 1; \
+	fi; \
+	METRICS=""; \
+	if [ -f experiments/latest_run/metrics.json ]; then \
+		METRICS="$$(uv run python -c "import json; m=json.load(open('experiments/latest_run/metrics.json')); print(f'acc={m[\"accuracy\"]:.4f}_f1={m[\"f1\"]:.4f}')" 2>/dev/null)"; \
+	fi; \
+	MSG="$${METRICS:+$$METRICS }$$(date +%Y%m%d-%H%M)"; \
+	echo "Submitting $$SUBMISSION to $(COMPETITION)..."; \
+	KAGGLE_API_TOKEN="$$(cat $(TOKEN_FILE) 2>/dev/null)" kaggle competitions submit \
+		-c $(COMPETITION) -f "$$SUBMISSION" -m "$$MSG"
 
 _uv_sync: pyproject.toml uv.lock
 	uv sync --extra dev
@@ -115,7 +102,11 @@ _ensure_kaggle_token:
 		fi; \
 	elif [ -f $(TOKEN_FILE) ] && [ -s $(TOKEN_FILE) ] && ! grep -q "$$PLACEHOLDER" $(TOKEN_FILE) 2>/dev/null; then \
 		TOKEN=$$(cat $(TOKEN_FILE)); \
-elif [ -f ~/.kaggle/kaggle.json ] && ! grep -q "your-kaggle-username" ~/.kaggle/kaggle.json 2>/dev/null; then \
+	elif [ -f ~/.kaggle/access_token ] && [ -s ~/.kaggle/access_token ] && ! grep -q "$$PLACEHOLDER" ~/.kaggle/access_token 2>/dev/null; then \
+		cp ~/.kaggle/access_token $(TOKEN_FILE); \
+		chmod 600 $(TOKEN_FILE); \
+		echo "  Copied token from ~/.kaggle/access_token"; \
+	elif [ -f ~/.kaggle/kaggle.json ] && ! grep -q "your-kaggle-username" ~/.kaggle/kaggle.json 2>/dev/null; then \
 		echo "Using legacy credentials from ~/.kaggle/kaggle.json"; \
 		exit 0; \
 	else \
@@ -145,6 +136,21 @@ _ensure_kaggle_auth: _ensure_kaggle_token
 	echo "  Authenticated successfully." || \
 	{ echo "  WARNING: Authentication check failed."; exit 1; }
 
+notebook-eda:
+	@uv run python scripts/nbs/build_eda.py
+
+notebook-baseline:
+	@uv run python scripts/nbs/build_baseline.py
+
+notebooks: notebook-eda notebook-baseline
+
+kernel-baseline:
+	@echo "Copy scripts/kernels/baseline.py into a Kaggle Notebook cell."
+	@echo "Or run locally: uv run python scripts/kernels/baseline.py"
+	@uv run python scripts/kernels/baseline.py 2>&1 | head -30 || true
+	@echo "... (use CONFIG=config/baseline.yaml for config-driven training)"
+
 _clean:
 	rm -f .uv_sync
 	rm -rf data/raw/*
+	rm -rf notebooks/*.ipynb

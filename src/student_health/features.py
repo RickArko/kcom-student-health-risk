@@ -3,48 +3,63 @@
 from __future__ import annotations
 
 import logging
+
 import pandas as pd
-from typing import Any
 
 logger = logging.getLogger(__name__)
+
+NUM_COLS = [
+    "sleep_duration",
+    "heart_rate",
+    "bmi",
+    "calorie_expenditure",
+    "step_count",
+    "exercise_duration",
+    "water_intake",
+]
+CAT_COLS = [
+    "diet_type",
+    "stress_level",
+    "sleep_quality",
+    "physical_activity_level",
+    "smoking_alcohol",
+    "gender",
+]
+TARGET_COL = "health_condition"
+
+TARGET_MAPPING = {"fit": 0, "at-risk": 1, "unhealthy": 2}
 
 
 def build_features(df: pd.DataFrame, train: bool = True) -> pd.DataFrame:
     """Build features from raw data."""
     df = df.copy()
 
-    # Engineered features
-    df["age_group"] = pd.cut(df["age"], bins=[0, 10, 18, 25, 40, 100], labels=["child", "teen", "young", "adult", "senior"])
-    df["bmi_category"] = pd.cut(df["bmi"], bins=[0, 18.5, 25, 30, 50], labels=["underweight", "normal", "overweight", "obese"])
+    for col in NUM_COLS:
+        if col in df.columns:
+            df[col] = df[col].fillna(df[col].median())
 
-    # Interaction features
-    df["age_bmi_interaction"] = df["age"] * df["bmi"]
-    df["stress_activity_interaction"] = df["stress_level"] * df["physical_activity_level"]
+    for col in CAT_COLS:
+        if col in df.columns:
+            df[col] = df[col].fillna("missing")
+            df[col] = df[col].astype("category")
 
-    # Categorical encoding
-    df["age_group_cat"] = df["age_group"].astype("category")
-    df["bmi_category_cat"] = df["bmi_category"].astype("category")
+    if "bmi" in df.columns and "exercise_duration" in df.columns:
+        df["bmi_exercise_interaction"] = df["bmi"] * df["exercise_duration"]
 
-    # Derived scores
-    df["health_score"] = (
-        df["sleep_hours"] / 10
-        + df["physical_activity_level"] / 10
-        - df["stress_level"] / 10
-        + df["diet_quality_score"] / 10
+    if "step_count" in df.columns and "calorie_expenditure" in df.columns:
+        df["efficiency_ratio"] = df["calorie_expenditure"] / (df["step_count"] + 1)
+
+    logger.info(
+        "Built features: %d columns, %d numeric, %d categorical",
+        df.shape[1],
+        len([c for c in NUM_COLS if c in df.columns]),
+        len([c for c in CAT_COLS if c in df.columns]),
     )
-
-    df = df.drop(columns=["age_group", "bmi_category"])
-
-    feature_cols = [c for c in df.columns if not c.startswith("id") and c != "target"]
-
-    if train:
-        logger.info("Built features from %d columns to %d columns", len(feature_cols), len(feature_cols) - 1)
-
     return df
 
 
 def get_X_y(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """Extract features and target from dataframe."""
-    X = df.drop(columns=["id", "target"])
-    y = df["target"]
+    X = df.drop(columns=["id", TARGET_COL], errors="ignore")
+    y = df[TARGET_COL].map(TARGET_MAPPING)
     return X, y

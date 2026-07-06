@@ -27,13 +27,13 @@ The model uses various features including:
 ```
 make install        # Install dependencies and set up Kaggle auth
 make download       # Fetch competition data to data/raw/
-make sim-download   # Fetch sample train/test CSV files (for development)
 make test           # Run tests
 make test ARGS="-k name -x"  # Focused test
 make lint           # Code linting
 make format         # Code formatting (check)
 make format-fix     # Apply ruff formatting
 make list           # List dataset statistics in stats.json
+make submit         # Submit submissions/submission.csv to Kaggle
 ```
 
 ## Key gotchas
