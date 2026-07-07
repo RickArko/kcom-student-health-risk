@@ -19,6 +19,8 @@ dependencies = [
     "tqdm>=4.66",
     "optuna>=3.6",
     "tabpfn>=8.0",
+    "kagglehub>=1.0.2",
+    "python-dotenv>=1.2.2",
 ]
 
 [project.optional-dependencies]

@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn kernel-baseline kernel-tabpfn
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling kernel-baseline kernel-tabpfn
 
 all: install download test
 	@echo ""
@@ -145,7 +145,10 @@ notebook-baseline:
 notebook-tabpfn:
 	@uv run python scripts/nbs/build_tabpfn.py
 
-notebooks: notebook-eda notebook-baseline notebook-tabpfn
+notebook-score-ceiling:
+	@uv run python scripts/nbs/build_score_ceiling.py
+
+notebooks: notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling
 
 kernel-baseline:
 	@echo "Copy scripts/kernels/baseline.py into a Kaggle Notebook cell."

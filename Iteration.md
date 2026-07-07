@@ -19,14 +19,25 @@ Read before starting new experiments.
 - **LightGBM baseline**: ~0.90 LB with median/mode imputation → label encoding → interaction features → stratified 5-fold CV
 - **TabPFN**: Foundation model, no preprocessing needed, stratified subsample to 15K rows, GPU accelerated
 
+## Score Ceiling (from estimation analysis)
+- **Label-noise ceiling**: 0.9674 (irreducible ~1% label flips → ~0.033 BA loss)
+- **Naive missingness floor**: 0.9411 (missing rule features, mostly `stress_level`)
+- **Realistic ceiling (public LB top)**: ~0.951
+- **Our baseline OOF**: 0.907
+- **Truly exploitable gap**: ~0.010 (after subtracting 0.033 irreducible noise)
+- **Key insight**: `stress_level` is independent noise → when missing (12% of rows), can't distinguish `fit` from `unhealthy`
+- See `notebooks/4_ScoreCeiling.ipynb` for full decomposition
+
 ## Next Steps
-1. Run TabPFN locally: `uv run python scripts/kernels/tabpfn.py` (or `make kernel-tabpfn`)
-2. Submit: `make submit`
-3. Ensemble TabPFN + LightGBM (complementary inductive biases)
-4. Hyperparameter tuning with Optuna for LightGBM
-5. Add XGBoost + CatBoost for ensemble diversity
-6. Experiment with SMOTE, threshold tuning
-7. Try larger TabPFN subsample with `ignore_pretraining_limits=True`
+1. [ ] Review score ceiling notebook: `make notebook-score-ceiling`
+2. [ ] Run TabPFN locally: `uv run python scripts/kernels/tabpfn.py` (or `make kernel-tabpfn`)
+3. [ ] Submit: `make submit`
+4. [ ] Close the ~0.010 exploitable gap via better imputation + threshold tuning
+5. [ ] Ensemble TabPFN + LightGBM (complementary inductive biases)
+6. [ ] Hyperparameter tuning with Optuna for LightGBM
+7. [ ] Add XGBoost + CatBoost for ensemble diversity
+8. [ ] Experiment with SMOTE, threshold tuning
+9. [ ] Try larger TabPFN subsample with `ignore_pretraining_limits=True`
 
 ## Make Targets
 | Command | What it does |
@@ -35,6 +46,7 @@ Read before starting new experiments.
 | `make notebook-eda` | Build EDA notebook |
 | `make notebook-baseline` | Build LightGBM baseline notebook |
 | `make notebook-tabpfn` | Build TabPFN notebook |
+| `make notebook-score-ceiling` | Build score ceiling estimation notebook |
 | `make kernel-baseline` | Run LightGBM baseline locally |
 | `make kernel-tabpfn` | Run TabPFN locally (needs GPU) |
 

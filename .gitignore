@@ -1,12 +1,13 @@
 data/
 .ai/
 .venv/
+.env
 .pytest*
 .ruff*
 .kaggle/access_token
 .kaggle/*.json
-notebooks/*.ipynb
 model.joblib
 submission.csv
 outputs/
 experiments/
+scripts/nbs/
