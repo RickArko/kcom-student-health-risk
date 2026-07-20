@@ -1,0 +1,43 @@
+competition:
+  name: "playground-series-s6e7"
+  metric: "balanced_accuracy"
+  target: "health_condition"
+  n_classes: 3
+  class_labels: ["fit", "at-risk", "unhealthy"]
+
+paths:
+  data: "data/raw"
+  outputs: "outputs/"
+  submissions: "data/submissions/"
+
+preprocessing:
+  numeric_impute: "median"
+  categorical_impute: "mode"
+  encode: "label"
+
+features:
+  numeric: ["sleep_duration", "heart_rate", "bmi", "calorie_expenditure",
+            "step_count", "exercise_duration", "water_intake"]
+  categorical: ["diet_type", "stress_level", "sleep_quality",
+                "physical_activity_level", "smoking_alcohol", "gender"]
+  interactions:
+    - ["bmi", "exercise_duration"]
+    - ["calorie_expenditure", "step_count"]
+    - ["heart_rate", "bmi"]
+
+cv:
+  type: "stratified"
+  n_splits: 5
+  shuffle: true
+  random_state: 42
+
+# Base models for the HGBC / CatB / XGB / LGBM stack
+# (inspired by kospintr/health-stacked-hgbc-catb-xgb-lgbm-baseline)
+stack:
+  n_estimators: 400
+  meta: "model_weight"   # model_weight | simple_average | weighted_average | logistic | hgbc
+  meta_n_trials: 1000
+
+kaggle:
+  competition: "playground-series-s6e7"
+  kernel_name: "student-health-risk-stack"

@@ -1,4 +1,4 @@
-"""Test data module for Student Health Risk Prediction."""
+"""Data loading helpers for Student Health Risk Prediction."""
 
 from __future__ import annotations
 
@@ -11,6 +11,18 @@ def load_train(data_dir: Path | None = None) -> pd.DataFrame:
     """Load training data from CSV file."""
     data_dir = data_dir or Path("data/raw")
     return pd.read_csv(data_dir / "train.csv")
+
+
+def load_test(data_dir: Path | None = None) -> pd.DataFrame:
+    """Load test data from CSV file."""
+    data_dir = data_dir or Path("data/raw")
+    return pd.read_csv(data_dir / "test.csv")
+
+
+def load_data(data_dir: Path | str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load train and test CSVs."""
+    data_dir = Path(data_dir) if data_dir is not None else Path("data/raw")
+    return load_train(data_dir), load_test(data_dir)
 
 
 def split_train_val(df: pd.DataFrame, val_frac: float = 0.2) -> tuple[pd.DataFrame, pd.DataFrame]:

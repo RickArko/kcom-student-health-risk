@@ -17,6 +17,8 @@ All Python **must** be prefixed with `uv run` (`.venv` not PATH).
 | `make format-fix` | Apply ruff formatting |
 | `make list` | List dataset statistics in `stats.json` |
 | `make submit` | Submit `submissions/submission.csv` to Kaggle |
+| `make notebook-stack` | Build stacked HGBC/CatB/XGB/LGBM notebook |
+| `make kernel-stack` | Kaggle paste path for `scripts/kernels/stack.py` |
 
 ## Verification loop: `make lint && make format && make test`. No typechecker configured.
 

@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling kernel-baseline kernel-tabpfn
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling notebook-stack kernel-baseline kernel-tabpfn kernel-stack
 
 all: install download test
 	@echo ""
@@ -148,7 +148,10 @@ notebook-tabpfn:
 notebook-score-ceiling:
 	@uv run python scripts/nbs/build_score_ceiling.py
 
-notebooks: notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling
+notebook-stack:
+	@uv run python scripts/nbs/build_stack.py
+
+notebooks: notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling notebook-stack
 
 kernel-baseline:
 	@echo "Copy scripts/kernels/baseline.py into a Kaggle Notebook cell."
@@ -160,6 +163,11 @@ kernel-tabpfn:
 	@echo "Copy scripts/kernels/tabpfn.py into a Kaggle Notebook (GPU) cell."
 	@echo "Or run locally: uv run python scripts/kernels/tabpfn.py"
 	@uv run python scripts/kernels/tabpfn.py 2>&1 | head -30 || true
+
+kernel-stack:
+	@echo "Copy scripts/kernels/stack.py into a Kaggle Notebook cell."
+	@echo "Or run locally: uv run python scripts/kernels/stack.py"
+	@echo "Or: uv run python scripts/train_stack.py --n-estimators 100 --n-folds 3"
 
 _clean:
 	rm -f .uv_sync

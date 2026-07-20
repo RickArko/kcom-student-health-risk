@@ -135,9 +135,12 @@ def main() -> None:
 
     try:
         import torch
+
         if not torch.cuda.is_available():
-            logger.warning("No GPU detected — TabPFN will run on CPU (slow). "
-                           "Set Notebook Settings → Accelerator → GPU.")
+            logger.warning(
+                "No GPU detected — TabPFN will run on CPU (slow). "
+                "Set Notebook Settings → Accelerator → GPU."
+            )
     except ImportError:
         pass
 

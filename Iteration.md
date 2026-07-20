@@ -6,10 +6,13 @@ Read before starting new experiments.
 - Repository initialized with full pipeline
 - Baseline kernel at `scripts/kernels/baseline.py` → LB ~0.90 (~500/800)
 - TabPFN v3 kernel at `scripts/kernels/tabpfn.py` (GPU recommended)
+- **Stack kernel** at `scripts/kernels/stack.py` — HGBC/CatB/XGB/LGBM + BA weight blend
+  (inspired by [kospintr stacked baseline](https://www.kaggle.com/code/kospintr/health-stacked-hgbc-catb-xgb-lgbm-baseline))
 - EDA notebook at `notebooks/1_EDA.ipynb`
 - Baseline notebook at `notebooks/2_Baseline.ipynb`
 - TabPFN notebook at `notebooks/3_TabPFN.ipynb`
-- Config-driven training via `config/baseline.yaml`
+- Stack notebook at `notebooks/5_Stack.ipynb` (`make notebook-stack`)
+- Configs: `config/baseline.yaml`, `config/stack.yaml`
 - Metric: Balanced Accuracy (mean recall per class)
 
 ## Key Findings
@@ -35,9 +38,11 @@ Read before starting new experiments.
 4. [ ] Close the ~0.010 exploitable gap via better imputation + threshold tuning
 5. [ ] Ensemble TabPFN + LightGBM (complementary inductive biases)
 6. [ ] Hyperparameter tuning with Optuna for LightGBM
-7. [ ] Add XGBoost + CatBoost for ensemble diversity
+7. [x] Add XGBoost + CatBoost (+ HGBC) stacked ensemble with BA weight blend
 8. [ ] Experiment with SMOTE, threshold tuning
 9. [ ] Try larger TabPFN subsample with `ignore_pretraining_limits=True`
+10. [ ] Run stack locally / on Kaggle and record OOF BA + LB
+11. [ ] Blend stack OOF with TabPFN probabilities
 
 ## Make Targets
 | Command | What it does |
@@ -47,8 +52,10 @@ Read before starting new experiments.
 | `make notebook-baseline` | Build LightGBM baseline notebook |
 | `make notebook-tabpfn` | Build TabPFN notebook |
 | `make notebook-score-ceiling` | Build score ceiling estimation notebook |
+| `make notebook-stack` | Build stacked HGBC/CatB/XGB/LGBM notebook |
 | `make kernel-baseline` | Run LightGBM baseline locally |
 | `make kernel-tabpfn` | Run TabPFN locally (needs GPU) |
+| `make kernel-stack` | Instructions for stack kernel / local train |
 
 ## Questions to Answer
 - What is the optimal class weighting scheme?
