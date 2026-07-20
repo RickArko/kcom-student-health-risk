@@ -28,7 +28,18 @@ CAT_COLS = [
 ]
 TARGET_COL = "health_condition"
 
+# Fixed class order — never rely on LabelEncoder alphabetical sorting.
+TARGET_LABELS = ["fit", "at-risk", "unhealthy"]
 TARGET_MAPPING = {"fit": 0, "at-risk": 1, "unhealthy": 2}
+N_CLASSES = 3
+
+# Missingness is especially informative for stress_level (~12%).
+MISS_INDICATOR_COLS = [
+    "stress_level",
+    "sleep_duration",
+    "physical_activity_level",
+    "sleep_quality",
+]
 
 
 def add_interactions(df: pd.DataFrame) -> pd.DataFrame:
@@ -43,25 +54,36 @@ def add_interactions(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-class HealthPreprocessor:
-    """Leakage-safe median/mode impute → label-encode → interactions."""
+def add_missing_indicators(df: pd.DataFrame, cols: list[str] | None = None) -> pd.DataFrame:
+    """Add binary missingness flags before imputation."""
+    df = df.copy()
+    cols = cols or MISS_INDICATOR_COLS
+    for col in cols:
+        if col in df.columns:
+            df[f"{col}_missing"] = df[col].isna().astype("int8")
+    return df
 
-    def __init__(self):
+
+class HealthPreprocessor:
+    """Leakage-safe missing indicators → median/mode impute → label-encode → interactions."""
+
+    def __init__(self, *, missing_indicators: bool = True):
+        self.missing_indicators = missing_indicators
         self.num_medians_: dict[str, float] = {}
         self.cat_modes_: dict[str, str] = {}
         self.encoders_: dict[str, LabelEncoder] = {}
         self.feature_cols_: list[str] = []
 
     def fit(self, df: pd.DataFrame) -> HealthPreprocessor:
+        raw = add_missing_indicators(df) if self.missing_indicators else df.copy()
         for col in NUM_COLS:
-            if col in df.columns:
-                self.num_medians_[col] = float(df[col].median())
+            if col in raw.columns:
+                self.num_medians_[col] = float(raw[col].median())
         for col in CAT_COLS:
-            if col in df.columns:
-                mode_val = df[col].mode(dropna=True)
+            if col in raw.columns:
+                mode_val = raw[col].mode(dropna=True)
                 self.cat_modes_[col] = str(mode_val.iloc[0]) if len(mode_val) > 0 else "missing"
-        # Fit encoders on imputed categoricals
-        tmp = self._impute(df)
+        tmp = self._impute(raw)
         for col in CAT_COLS:
             if col in tmp.columns:
                 le = LabelEncoder()
@@ -70,7 +92,8 @@ class HealthPreprocessor:
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        out = self._impute(df)
+        out = add_missing_indicators(df) if self.missing_indicators else df.copy()
+        out = self._impute(out)
         for col, le in self.encoders_.items():
             if col not in out.columns:
                 continue
@@ -95,6 +118,9 @@ class HealthPreprocessor:
         X = processed[feature_cols].copy()
         for col in X.select_dtypes("float64").columns:
             X[col] = X[col].astype("float32")
+        for col in X.select_dtypes("int64").columns:
+            if col.endswith("_missing"):
+                X[col] = X[col].astype("int8")
         return X, feature_cols
 
     def _impute(self, df: pd.DataFrame) -> pd.DataFrame:

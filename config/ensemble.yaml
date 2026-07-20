@@ -1,0 +1,50 @@
+competition:
+  name: "playground-series-s6e7"
+  metric: "balanced_accuracy"
+  target: "health_condition"
+  n_classes: 3
+  class_labels: ["fit", "at-risk", "unhealthy"]
+
+paths:
+  data: "data/raw"
+  experiments: "experiments/ensemble"
+  submissions: "data/submissions/"
+
+preprocessing:
+  missing_indicators: true
+  numeric_impute: "median"
+  categorical_impute: "mode"
+  encode: "label"
+
+cv:
+  type: "stratified"
+  n_splits: 5
+  shuffle: true
+  random_state: 42
+
+models:
+  lgbm:
+    n_estimators: 800
+    learning_rate: 0.05
+    num_leaves: 63
+    class_weight: "balanced"
+  xgb:
+    n_estimators: 800
+    learning_rate: 0.05
+    max_depth: 6
+    early_stopping_rounds: 50
+  catboost:
+    iterations: 800
+    learning_rate: 0.05
+    depth: 6
+    auto_class_weights: "Balanced"
+    early_stopping_rounds: 50
+
+blend:
+  n_trials: 2000
+  tune_thresholds: true
+  random_state: 42
+
+kaggle:
+  competition: "playground-series-s6e7"
+  kernel_name: "student-health-risk-ensemble"

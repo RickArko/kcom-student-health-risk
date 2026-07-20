@@ -1,8 +1,7 @@
 """Model utilities for Student Health Risk Prediction.
 
-Includes a LightGBM single-model baseline plus a stacking ensemble of
-HistGradientBoosting / CatBoost / XGBoost / LightGBM (inspired by
-https://www.kaggle.com/code/kospintr/health-stacked-hgbc-catb-xgb-lgbm-baseline).
+Includes LightGBM / XGBoost / CatBoost stratified OOF trainers plus a
+stacking ensemble of HistGradientBoosting / CatBoost / XGBoost / LightGBM.
 """
 
 from __future__ import annotations
@@ -10,6 +9,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
+from typing import Any
 
 import lightgbm as lgb
 import numpy as np
@@ -20,19 +20,19 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.class_weight import compute_sample_weight
+
+from student_health.cv import make_cv
+from student_health.features import N_CLASSES
 
 logger = logging.getLogger(__name__)
-
-N_CLASSES = 3
-
-TARGET_LABELS = ["fit", "at-risk", "unhealthy"]
 
 LGBM_DEFAULT_PARAMS = {
     "objective": "multiclass",
     "num_class": N_CLASSES,
     "metric": "multi_logloss",
     "boosting_type": "gbdt",
-    "n_estimators": 500,
+    "n_estimators": 800,
     "learning_rate": 0.05,
     "num_leaves": 63,
     "min_child_samples": 20,
@@ -44,6 +44,37 @@ LGBM_DEFAULT_PARAMS = {
     "random_state": 42,
     "n_jobs": -1,
     "verbose": -1,
+}
+
+XGB_DEFAULT_PARAMS = {
+    "n_estimators": 800,
+    "learning_rate": 0.05,
+    "max_depth": 6,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_lambda": 1.0,
+    "reg_alpha": 0.1,
+    "objective": "multi:softprob",
+    "eval_metric": "mlogloss",
+    "num_class": N_CLASSES,
+    "random_state": 42,
+    "n_jobs": -1,
+    "verbosity": 0,
+    "early_stopping_rounds": 50,
+}
+
+CAT_DEFAULT_PARAMS = {
+    "iterations": 800,
+    "learning_rate": 0.05,
+    "depth": 6,
+    "l2_leaf_reg": 9,
+    "auto_class_weights": "Balanced",
+    "loss_function": "MultiClass",
+    "eval_metric": "MultiClass",
+    "random_seed": 42,
+    "verbose": 0,
+    "allow_writing_files": False,
+    "early_stopping_rounds": 50,
 }
 
 MODEL_REGISTRY: dict[str, type] = {
@@ -149,6 +180,168 @@ def train_cv(
         "scores": scores,
         "oof_ba": oof_ba,
     }
+
+
+def _oof_result(
+    name: str,
+    y: np.ndarray,
+    oof_proba: np.ndarray,
+    test_proba: np.ndarray | None,
+    scores: list[float],
+) -> dict[str, Any]:
+    oof_labels = oof_proba.argmax(axis=1)
+    oof_ba = float(balanced_accuracy_score(y, oof_labels))
+    logger.info(
+        "%s OOF BA: %.4f (mean %.4f ± %.4f)",
+        name,
+        oof_ba,
+        float(np.mean(scores)),
+        float(np.std(scores)),
+    )
+    return {
+        "name": name,
+        "oof_proba": oof_proba,
+        "oof_labels": oof_labels,
+        "test_proba": test_proba,
+        "scores": scores,
+        "oof_ba": oof_ba,
+    }
+
+
+def train_cv_lgbm(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    X_test: pd.DataFrame | None = None,
+    *,
+    folds: list[tuple[np.ndarray, np.ndarray]] | None = None,
+    n_folds: int = 5,
+    random_state: int = 42,
+    params: dict | None = None,
+) -> dict[str, Any]:
+    """Stratified OOF LightGBM with class_weight=balanced and early stopping."""
+    params = {**LGBM_DEFAULT_PARAMS, **(params or {})}
+    if folds is None:
+        folds = list(make_cv(n_folds, random_state).split(X, y))
+
+    oof_proba = np.zeros((len(X), N_CLASSES), dtype=np.float32)
+    test_proba = (
+        np.zeros((len(X_test), N_CLASSES), dtype=np.float32) if X_test is not None else None
+    )
+    scores: list[float] = []
+    n_splits = len(folds)
+
+    for fold, (trn_idx, val_idx) in enumerate(folds):
+        X_tr, X_val = X.iloc[trn_idx], X.iloc[val_idx]
+        y_tr, y_val = y[trn_idx], y[val_idx]
+        model = lgb.LGBMClassifier(**params)
+        model.fit(
+            X_tr,
+            y_tr,
+            eval_set=[(X_val, y_val)],
+            eval_metric="multi_logloss",
+            callbacks=[lgb.early_stopping(50, verbose=False), lgb.log_evaluation(0)],
+        )
+        val_proba = model.predict_proba(X_val)
+        oof_proba[val_idx] = val_proba
+        if test_proba is not None:
+            test_proba += model.predict_proba(X_test) / n_splits
+        fold_ba = float(balanced_accuracy_score(y_val, val_proba.argmax(axis=1)))
+        scores.append(fold_ba)
+        logger.info("  LGBM fold %d/%d BA: %.4f", fold + 1, n_splits, fold_ba)
+
+    return _oof_result("lgbm", y, oof_proba, test_proba, scores)
+
+
+def train_cv_xgb(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    X_test: pd.DataFrame | None = None,
+    *,
+    folds: list[tuple[np.ndarray, np.ndarray]] | None = None,
+    n_folds: int = 5,
+    random_state: int = 42,
+    params: dict | None = None,
+) -> dict[str, Any]:
+    """Stratified OOF XGBoost with balanced sample weights and early stopping."""
+    if XGBClassifier is None:
+        raise ImportError("xgboost is required: uv add xgboost")
+
+    params = {**XGB_DEFAULT_PARAMS, **(params or {})}
+    # XGBoost 2+/3+: early_stopping_rounds belongs on the constructor
+    if "early_stopping_rounds" not in params:
+        params["early_stopping_rounds"] = 50
+    if folds is None:
+        folds = list(make_cv(n_folds, random_state).split(X, y))
+
+    oof_proba = np.zeros((len(X), N_CLASSES), dtype=np.float32)
+    test_proba = (
+        np.zeros((len(X_test), N_CLASSES), dtype=np.float32) if X_test is not None else None
+    )
+    scores: list[float] = []
+    n_splits = len(folds)
+
+    for fold, (trn_idx, val_idx) in enumerate(folds):
+        X_tr, X_val = X.iloc[trn_idx], X.iloc[val_idx]
+        y_tr, y_val = y[trn_idx], y[val_idx]
+        sw = compute_sample_weight("balanced", y_tr)
+        model = XGBClassifier(**params)
+        model.fit(
+            X_tr,
+            y_tr,
+            sample_weight=sw,
+            eval_set=[(X_val, y_val)],
+            verbose=False,
+        )
+        val_proba = model.predict_proba(X_val)
+        oof_proba[val_idx] = val_proba
+        if test_proba is not None:
+            test_proba += model.predict_proba(X_test) / n_splits
+        fold_ba = float(balanced_accuracy_score(y_val, val_proba.argmax(axis=1)))
+        scores.append(fold_ba)
+        logger.info("  XGB fold %d/%d BA: %.4f", fold + 1, n_splits, fold_ba)
+
+    return _oof_result("xgb", y, oof_proba, test_proba, scores)
+
+
+def train_cv_cat(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    X_test: pd.DataFrame | None = None,
+    *,
+    folds: list[tuple[np.ndarray, np.ndarray]] | None = None,
+    n_folds: int = 5,
+    random_state: int = 42,
+    params: dict | None = None,
+) -> dict[str, Any]:
+    """Stratified OOF CatBoost with auto_class_weights=Balanced."""
+    if CatBoostClassifier is None:
+        raise ImportError("catboost is required: uv add catboost")
+
+    params = {**CAT_DEFAULT_PARAMS, **(params or {})}
+    if folds is None:
+        folds = list(make_cv(n_folds, random_state).split(X, y))
+
+    oof_proba = np.zeros((len(X), N_CLASSES), dtype=np.float32)
+    test_proba = (
+        np.zeros((len(X_test), N_CLASSES), dtype=np.float32) if X_test is not None else None
+    )
+    scores: list[float] = []
+    n_splits = len(folds)
+
+    for fold, (trn_idx, val_idx) in enumerate(folds):
+        X_tr, X_val = X.iloc[trn_idx], X.iloc[val_idx]
+        y_tr, y_val = y[trn_idx], y[val_idx]
+        model = CatBoostClassifier(**params)
+        model.fit(X_tr, y_tr, eval_set=(X_val, y_val), use_best_model=True)
+        val_proba = model.predict_proba(X_val)
+        oof_proba[val_idx] = val_proba
+        if test_proba is not None:
+            test_proba += model.predict_proba(X_test) / n_splits
+        fold_ba = float(balanced_accuracy_score(y_val, val_proba.argmax(axis=1)))
+        scores.append(fold_ba)
+        logger.info("  CatBoost fold %d/%d BA: %.4f", fold + 1, n_splits, fold_ba)
+
+    return _oof_result("catboost", y, oof_proba, test_proba, scores)
 
 
 # ── Stacking meta-models ──────────────────────────────────────────────────────

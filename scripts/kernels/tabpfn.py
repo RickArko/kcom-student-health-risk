@@ -7,7 +7,11 @@ Strategy:
 - TabPFN handles missing values natively
 - Pass categoricals as strings (TabPFN auto-encodes)
 - Stratified subsample to 15K rows (TabPFN sweet spot)
-- Single fast run (skip CV, rely on Kaggle LB for eval)
+- Single fast run for submission (LB eval)
+
+For stratified OOF verification (comparable to the GBDT ensemble), run locally:
+    uv run python scripts/verify_tabpfn.py
+    make verify-tabpfn
 
 ⚠ LICENSE REQUIRED: TabPFN v3 requires a one-time license acceptance.
   1. Open https://ux.priorlabs.ai in a browser and log in (or register)

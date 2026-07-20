@@ -16,7 +16,11 @@ All Python **must** be prefixed with `uv run` (`.venv` not PATH).
 | `make format` | `ruff format --check` (no rewrite) |
 | `make format-fix` | Apply ruff formatting |
 | `make list` | List dataset statistics in `stats.json` |
-| `make submit` | Submit `submissions/submission.csv` to Kaggle |
+| `make train-ensemble` | LGBM+XGB+CatBoost OOF blend → `data/submissions/submission.csv` |
+| `make verify-autogluon` | AutoGluon OOF bar (`uv sync --extra dev --extra verify`) |
+| `make verify-tabpfn` | TabPFN subsample OOF bar (needs `TABPFN_TOKEN`) |
+| `make compare` | Compare ensemble vs AutoGluon/TabPFN OOF |
+| `make submit` | Submit `data/submissions/submission.csv` to Kaggle |
 | `make notebook-stack` | Build stacked HGBC/CatB/XGB/LGBM notebook |
 | `make kernel-stack` | Kaggle paste path for `scripts/kernels/stack.py` |
 

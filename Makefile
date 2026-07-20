@@ -2,7 +2,7 @@ COMPETITION := playground-series-s6e7
 DATA_DIR   := data/raw
 TOKEN_FILE := .kaggle/access_token
 
-.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling notebook-stack kernel-baseline kernel-tabpfn kernel-stack
+.PHONY: all install download test lint format clean list submit notebook-eda notebook-baseline notebook-tabpfn notebook-score-ceiling notebook-stack kernel-baseline kernel-tabpfn kernel-stack train-ensemble verify-autogluon verify-tabpfn compare kernel-ensemble
 
 all: install download test
 	@echo ""
@@ -168,6 +168,27 @@ kernel-stack:
 	@echo "Copy scripts/kernels/stack.py into a Kaggle Notebook cell."
 	@echo "Or run locally: uv run python scripts/kernels/stack.py"
 	@echo "Or: uv run python scripts/train_stack.py --n-estimators 100 --n-folds 3"
+
+train-ensemble:
+	uv run python scripts/train_ensemble.py --config config/ensemble.yaml
+
+kernel-ensemble:
+	@echo "Copy scripts/kernels/ensemble.py into a Kaggle Notebook cell."
+	@echo "Or run locally: uv run python scripts/kernels/ensemble.py"
+	uv run python scripts/kernels/ensemble.py
+
+verify-autogluon:
+	@echo "Requires: uv sync --extra dev --extra verify"
+	@mkdir -p experiments/autogluon
+	uv run python scripts/verify_autogluon.py
+
+verify-tabpfn:
+	@echo "Requires TABPFN_TOKEN and preferably a GPU"
+	@mkdir -p experiments/tabpfn
+	uv run python scripts/verify_tabpfn.py
+
+compare:
+	uv run python scripts/compare_baselines.py
 
 _clean:
 	rm -f .uv_sync

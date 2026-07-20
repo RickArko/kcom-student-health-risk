@@ -65,6 +65,7 @@ class TestHealthPreprocessor:
         assert X_test.shape[1] == X.shape[1]
         assert TARGET_COL not in X.columns
         assert "bmi_exercise_interaction" in cols
+        assert "stress_level_missing" in cols
 
     def test_no_nan_after_transform(self):
         train, _ = _synthetic()
